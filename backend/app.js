@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://trendora-ecommerce-kappa.vercel.app/", // frontend origin
+    origin: "https://trendora-ecommerce-kappa.vercel.app", // frontend origin
     credentials: true,               // allow cookies
   })
 );
