@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 // REGISTER USER
 export const registerUser = async (req, res) => {
   try {
-    const { firstName, email, password, confirmPassword } = req.body;
+    const { firstName, email, password, confirmPassword } = req.body || {};
     // 1️⃣ Check if passwords match
     if (password !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });

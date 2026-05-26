@@ -2,7 +2,6 @@ import heroimg from "../images/hero.webp";
 import hero2img from "../images/hero2.webp";
 import hero3img from "../images/hero3.webp";
 import hero4img from "../images/hero4.webp";
-import { products } from "../data/products";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
