@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Memory Foam Mattress",
+    "description": "Soft & supportive, adapts to your body.",
+    "price": 399,
+    "image": "product1.webp"
+  },
+  {
+    "name": "Hybrid Mattress",
+    "description": "Balanced layers of springs & foam.",
+    "price": 499,
+    "image": "product2.webp"
+  },
+  {
+    "name": "Luxury Mattress",
+    "description": "Premium quality for restful sleep.",
+    "price": 699,
+    "image": "product3.webp"
+  },
+  {
+    "name": "Kids Mattress",
+    "description": "Designed for growing kids’ comfort.",
+    "price": 299,
+    "image": "product4.webp"
+  },
+  {
+    "name": "Orthopedic Mattress",
+    "description": "Extra support for back & spine health.",
+    "price": 549,
+    "image": "product5.webp"
+  },
+  {
+    "name": "Eco-Friendly Mattress",
+    "description": "Made with sustainable, natural materials.",
+    "price": 599,
+    "image": "product6.webp"
+  },
+  {
+    "name": "Pillow Top Mattress",
+    "description": "Extra plush top layer for ultimate comfort.",
+    "price": 479,
+    "image": "product7.webp"
+  },
+  {
+    "name": "Cooling Gel Mattress",
+    "description": "Stay cool during warm nights with gel foam.",                                                       q
+    "price": 529,
+    "image": "product8.webp"
+  },
+  {
+    "name": "Foldable Mattress",
+    "description": "Space-saving design, perfect for guests.",
+    "price": 199,
+    "image": "product9.webp"
+  },
+  {
+    "name": "Bunk Bed Mattress",
+    "description": "Slim design for bunk & trundle beds.",
+    "price": 259,
+    "image": "product10.webp"
+  },
+  {
+    "name": "Luxury Bed Sheets",
+    "description": "High-thread count cotton sheets set.",
+    "price": 129,
+    "image": "product11.webp"
+  },
+  {
+    "name": "Comfort Pillow",
+    "description": "Memory foam pillow for neck support.",
+    "price": 59,
+    "image": "product12.webp"
+  }
+]
