@@ -6,9 +6,12 @@ The application is designed with real-world ecommerce flow in mind and includes 
 
 ---
 
-# 🚀 Live Demo
+# 🚀 Live Demo & Login Crediantials
 
-Coming Soon...
+https://trendora-ecommerce-kappa.vercel.app/
+Demo admin login info
+email: ahmad@gmail.com
+pass: ahmad
 
 ---
 
@@ -112,32 +115,6 @@ Coming Soon...
 * Multer
 * Cloudinary
 
----
-
-# 📁 Project Structure
-
-```bash
-Trendora/
-│
-├── ecommerce/
-│   
-│   
-│   
-│   
-│   
-│
-├── backend/
-│   
-│   
-│   
-│   
-│   
-│   
-│
-└── README.md
-```
-
----
 
 # ⚙️ Environment Variables
 
