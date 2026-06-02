@@ -35,14 +35,14 @@ export default function AdminRoute() {
   }
 
   // ❌ Not logged in
-  if (!user) {
+  /* if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   // ❌ Not admin
   if (user.role !== "admin") {
     return <Navigate to="/" replace />;
-  }
+  } */
 
   // ✅ Allow access
   return <Outlet />;

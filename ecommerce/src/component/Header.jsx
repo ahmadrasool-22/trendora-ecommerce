@@ -77,6 +77,9 @@ export default function Header() {
           <li className="hover:text-blue-600">
             <Link to="orders/">Order</Link>
           </li>
+           <li className="hover:text-blue-600">
+              <Link to="/admin/dashboard">Dashboard</Link>
+            </li>
           {user?.role === "admin" && (
             <li className="hover:text-blue-600">
               <Link to="/admin/dashboard">Dashboard</Link>
