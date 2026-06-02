@@ -8,7 +8,7 @@ The application is designed with real-world ecommerce flow in mind and includes 
 
 # 🚀 Live Demo
 
-Coming Soon...
+https://trendora-ecommerce-kappa.vercel.app/
 
 ---
 
@@ -112,32 +112,6 @@ Coming Soon...
 * Multer
 * Cloudinary
 
----
-
-# 📁 Project Structure
-
-```bash
-Trendora/
-│
-├── ecommerce/
-│   
-│   
-│   
-│   
-│   
-│
-├── backend/
-│   
-│   
-│   
-│   
-│   
-│   
-│
-└── README.md
-```
-
----
 
 # ⚙️ Environment Variables
 
