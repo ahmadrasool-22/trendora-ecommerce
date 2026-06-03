@@ -185,6 +185,15 @@ export default function Header() {
                   Cart
                 </Link>
               </li>
+              <li>
+                  <Link
+                    to="/admin/dashboard"
+                    className="block px-4 py-3 bg-blue-50 text-blue-700 rounded-lg"
+                    onClick={() => setMobOpen(false)}
+                  >
+                    Admin Dashboard
+                  </Link>
+                </li>
               {user?.role === "admin" && (
                 <li>
                   <Link
