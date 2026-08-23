@@ -10,6 +10,7 @@ export default function Checkout() {
   const [user, setUser] = useState(null);
 
   const [loading, setLoading] = useState(true);
+  const [placingOrder, setPlacingOrder] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -20,54 +21,100 @@ export default function Checkout() {
     paymentMethod: "Cash On Delivery",
   });
 
-  //fetch current user
+  // =========================================================
+  // GET CURRENT USER
+  // =========================================================
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API}/api/users/me`, {
-          credentials: "include",
-        });
+        const res = await fetch(
+          `${import.meta.env.VITE_API}/api/users/me`,
+          {
+            credentials: "include",
+          }
+        );
 
         if (!res.ok) {
+          // No logged-in user = guest
           setUser(null);
-        } else {
-          const data = await res.json();
-          setUser(data.user);
+          return;
         }
+
+        const data = await res.json();
+        setUser(data.user);
       } catch (err) {
-        console.error(err);
+        console.log("User check failed:", err);
         setUser(null);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchUser();
   }, []);
 
-
-  // Fetch Cart
+  // =========================================================
+  // FETCH CART
+  // Logged in  -> MongoDB
+  // Guest      -> localStorage
+  // =========================================================
   useEffect(() => {
-  if (!user) return;
+    const fetchCart = async () => {
+      setLoading(true);
 
-  const fetchCart = async () => {
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API}/api/cart/${user._id}`
-      );
+      // -----------------------------------------------------
+      // GUEST CART
+      // -----------------------------------------------------
+      if (!user) {
+        try {
+          const guestCart =
+            JSON.parse(
+              localStorage.getItem("guestCart")
+            ) || [];
 
-      setCartItems(res.data.items || []);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+          setCartItems(guestCart);
+        } catch (error) {
+          console.log(
+            "Failed to read guest cart:",
+            error
+          );
 
-  fetchCart();
-}, [user]);
+          setCartItems([]);
+        } finally {
+          setLoading(false);
+        }
 
-  // Handle Input Change
+        return;
+      }
+
+      // -----------------------------------------------------
+      // LOGGED-IN CART
+      // -----------------------------------------------------
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API}/api/cart/${user._id}`,
+          {
+            withCredentials: true,
+          }
+        );
+
+        setCartItems(res.data.items || []);
+      } catch (error) {
+        console.log(
+          "Failed to fetch user cart:",
+          error
+        );
+
+        setCartItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCart();
+  }, [user]);
+
+  // =========================================================
+  // HANDLE INPUT
+  // =========================================================
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -75,31 +122,68 @@ export default function Checkout() {
     });
   };
 
-  // Total Price
+  // =========================================================
+  // GET PRODUCT DATA
+  //
+  // Logged-in item:
+  // item.product.price
+  //
+  // Guest item:
+  // item.price
+  // =========================================================
+  const getProduct = (item) => {
+    if (item.product) {
+      return item.product;
+    }
+
+    return item;
+  };
+
+  // =========================================================
+  // TOTAL PRICE
+  // =========================================================
   const totalPrice = cartItems.reduce(
-    (acc, item) =>
-      acc +
-      item.product.price * item.quantity,
+    (acc, item) => {
+      const product = getProduct(item);
+
+      return (
+        acc +
+        product.price * item.quantity
+      );
+    },
     0
   );
 
-  // Place Order
+  // =========================================================
+  // PLACE ORDER
+  // =========================================================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (cartItems.length === 0) {
+      alert("Your cart is empty.");
+      return;
+    }
+
     try {
-      const userId = user._id;
-        
+      setPlacingOrder(true);
 
-      // Convert Cart Items
-      const items = cartItems.map((item) => ({
-        product: item.product._id,
-        quantity: item.quantity,
-      }));
+      // -----------------------------------------------------
+      // Convert both cart types into backend order format
+      // -----------------------------------------------------
+      const items = cartItems.map((item) => {
+        const product = getProduct(item);
 
+        return {
+          product: product._id,
+          quantity: item.quantity,
+        };
+      });
+
+      // -----------------------------------------------------
+      // Common order data
+      // -----------------------------------------------------
       const orderData = {
-        userId,
-
         customerInfo: {
           name: formData.name,
           email: formData.email,
@@ -111,32 +195,75 @@ export default function Checkout() {
           address: formData.address,
         },
 
-        paymentMethod:
-          formData.paymentMethod,
+        paymentMethod: formData.paymentMethod,
 
         items,
       };
 
+      // -----------------------------------------------------
+      // ONLY send userId when logged in
+      // -----------------------------------------------------
+      if (user) {
+        orderData.userId = user._id;
+      }
+
+      // -----------------------------------------------------
+      // CREATE ORDER
+      // -----------------------------------------------------
       await axios.post(
         `${import.meta.env.VITE_API}/api/orders`,
         orderData
       );
 
+      // -----------------------------------------------------
+      // CLEAR GUEST CART
+      // -----------------------------------------------------
+      if (!user) {
+        localStorage.removeItem("guestCart");
+      }
+
       alert("Order Placed Successfully");
 
       navigate("/orderconfirm");
     } catch (error) {
-      console.log(error);
+      console.log(
+        "Failed to place order:",
+        error
+      );
 
-      alert("Failed To Place Order");
+      alert(
+        error.response?.data?.message ||
+          "Failed To Place Order"
+      );
+    } finally {
+      setPlacingOrder(false);
     }
   };
 
+  // =========================================================
+  // LOADING
+  // =========================================================
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <p className="text-blue-600 font-medium">
+          Loading checkout...
+        </p>
+      </div>
+    );
+  }
+
+  // =========================================================
+  // CHECKOUT UI
+  // =========================================================
   return (
     <div className="min-h-screen bg-slate-100 py-10 px-4">
+
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* LEFT SIDE */}
+        {/* =================================================
+            LEFT SIDE - CHECKOUT FORM
+        ================================================= */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
 
           <h2 className="text-3xl font-bold text-blue-950 mb-2">
@@ -146,6 +273,15 @@ export default function Checkout() {
           <p className="text-gray-500 mb-8">
             Complete your shipping details
           </p>
+
+          {/* Guest indicator */}
+          {!user && (
+            <div className="mb-6 rounded-2xl bg-blue-50 border border-blue-100 p-4">
+              <p className="text-sm text-blue-800">
+                You are checking out as a guest.
+              </p>
+            </div>
+          )}
 
           <form
             onSubmit={handleSubmit}
@@ -231,7 +367,7 @@ export default function Checkout() {
               />
             </div>
 
-            {/* Payment Method */}
+            {/* Payment */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Payment Method
@@ -260,17 +396,31 @@ export default function Checkout() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full bg-blue-900 hover:bg-blue-800 text-white py-4 rounded-2xl font-semibold transition"
+              disabled={
+                placingOrder ||
+                cartItems.length === 0
+              }
+              className={`w-full py-4 rounded-2xl font-semibold text-white transition ${
+                placingOrder ||
+                cartItems.length === 0
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-900 hover:bg-blue-800"
+              }`}
             >
-              Place Order
+              {placingOrder
+                ? "Placing Order..."
+                : "Place Order"}
             </button>
           </form>
         </div>
 
-        {/* RIGHT SIDE */}
+        {/* =================================================
+            RIGHT SIDE - ORDER SUMMARY
+        ================================================= */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 h-fit">
 
           <div className="flex items-center gap-3 mb-6">
+
             <ShoppingBag className="text-blue-900" />
 
             <h2 className="text-2xl font-bold text-blue-950">
@@ -278,14 +428,11 @@ export default function Checkout() {
             </h2>
           </div>
 
-          {loading ? (
-            <div className="space-y-4">
-              <div className="h-24 bg-slate-200 rounded-2xl animate-pulse"></div>
+          {cartItems.length === 0 ? (
 
-              <div className="h-24 bg-slate-200 rounded-2xl animate-pulse"></div>
-            </div>
-          ) : cartItems.length === 0 ? (
+            /* EMPTY CART */
             <div className="text-center py-10">
+
               <ShoppingBag
                 size={50}
                 className="mx-auto text-gray-300"
@@ -299,40 +446,54 @@ export default function Checkout() {
                 Add products to checkout
               </p>
             </div>
+
           ) : (
+
+            /* CART ITEMS */
             <>
               <div className="space-y-5">
-                {cartItems.map((item) => (
-                  <div
-                    key={item.product._id}
-                    className="flex gap-4 border border-slate-200 rounded-2xl p-4"
-                  >
 
-                    {/* Image */}
-                    <img
-                      src={item.product.image}
-                      alt={item.product.name}
-                      className="w-24 h-24 object-cover rounded-2xl"
-                    />
+                {cartItems.map((item) => {
 
-                    {/* Info */}
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-blue-950">
-                        {item.product.name}
-                      </h3>
+                  const product =
+                    getProduct(item);
 
-                      <p className="text-gray-500 text-sm mt-1">
-                        Quantity: {item.quantity}
-                      </p>
+                  return (
+                    <div
+                      key={product._id}
+                      className="flex gap-4 border border-slate-200 rounded-2xl p-4"
+                    >
 
-                      <p className="text-blue-900 font-bold mt-3">
-                        Rs.{" "}
-                        {item.product.price *
-                          item.quantity}
-                      </p>
+                      {/* Image */}
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-24 h-24 object-cover rounded-2xl"
+                      />
+
+                      {/* Info */}
+                      <div className="flex-1">
+
+                        <h3 className="font-semibold text-blue-950">
+                          {product.name}
+                        </h3>
+
+                        <p className="text-gray-500 text-sm mt-1">
+                          Quantity:{" "}
+                          {item.quantity}
+                        </p>
+
+                        <p className="text-blue-900 font-bold mt-3">
+                          Rs.{" "}
+                          {product.price *
+                            item.quantity}
+                        </p>
+
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+
               </div>
 
               {/* Total */}
@@ -345,10 +506,12 @@ export default function Checkout() {
                 <h3 className="text-2xl font-bold text-blue-900">
                   Rs. {totalPrice}
                 </h3>
+
               </div>
             </>
           )}
         </div>
+
       </div>
     </div>
   );
