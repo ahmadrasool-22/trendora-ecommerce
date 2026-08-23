@@ -268,11 +268,15 @@ export default function View() {
                   >
 
                     {/* Product Image */}
-                    <img
-                      src={`${import.meta.env.VITE_API}${item.image}`}
-                      alt={item.name}
-                      className="w-20 h-20 object-cover rounded-xl"
-                    />
+                   <img
+  src={
+    item.image?.startsWith("http")
+      ? item.image
+      : `${import.meta.env.VITE_API}${item.image}`
+  }
+  alt={item.name}
+  className="w-20 h-20 object-cover rounded-xl"
+/>
 
                     {/* Product Info */}
                     <div className="flex-1">
