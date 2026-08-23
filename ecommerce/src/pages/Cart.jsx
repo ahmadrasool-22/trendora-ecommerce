@@ -1,13 +1,51 @@
+
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 
 export default function Cart() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // Fetch Cart
+  // ==========================================
+  // FETCH CURRENT USER
+  // ==========================================
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API}/api/users/me`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+
+        const data = await res.json();
+        setUser(data.user);
+      } catch (err) {
+        console.error("Failed to fetch user:", err);
+        setUser(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  // ==========================================
+  // FETCH LOGGED-IN USER CART
+  // ==========================================
   const fetchCart = useCallback(async () => {
     try {
+      setLoading(true);
+
       const res = await fetch(
         `${import.meta.env.VITE_API}/api/cart`,
         {
@@ -15,27 +53,111 @@ export default function Cart() {
         }
       );
 
+      if (!res.ok) {
+        throw new Error("Failed to fetch cart");
+      }
+
       const data = await res.json();
 
       setCart(data);
-
-      setLoading(false);
     } catch (err) {
-      console.error(err);
-
+      console.error("Failed to fetch cart:", err);
+      setCart([]);
+    } finally {
       setLoading(false);
     }
   }, []);
 
+  // ==========================================
+  // LOAD CART AFTER AUTH CHECK
+  // ==========================================
   useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
+    if (authLoading) {
+      return;
+    }
 
-  // Update Quantity
-  const updateQuantity = async (
-    id,
-    type
-  ) => {
+    // --------------------------
+    // GUEST CART
+    // --------------------------
+    if (!user) {
+      try {
+        const guestCart =
+          JSON.parse(
+            localStorage.getItem("guestCart")
+          ) || [];
+
+        setCart(guestCart);
+      } catch (err) {
+        console.error(
+          "Failed to load guest cart:",
+          err
+        );
+
+        setCart([]);
+      }
+
+      setLoading(false);
+      return;
+    }
+
+    // --------------------------
+    // LOGGED-IN USER CART
+    // --------------------------
+    fetchCart();
+  }, [user, authLoading, fetchCart]);
+
+  // ==========================================
+  // UPDATE QUANTITY
+  // ==========================================
+  const updateQuantity = async (id, type) => {
+    // ========================================
+    // GUEST USER
+    // ========================================
+    if (!user) {
+      try {
+        const existingCart =
+          JSON.parse(
+            localStorage.getItem("guestCart")
+          ) || [];
+
+        const updatedCart = existingCart
+          .map((item) => {
+            if (item._id !== id) {
+              return item;
+            }
+
+            const newQuantity =
+              type === "inc"
+                ? item.quantity + 1
+                : item.quantity - 1;
+
+            return {
+              ...item,
+              quantity: newQuantity,
+            };
+          })
+          .filter((item) => item.quantity > 0);
+
+        localStorage.setItem(
+          "guestCart",
+          JSON.stringify(updatedCart)
+        );
+
+        setCart(updatedCart);
+      } catch (err) {
+        console.error(
+          "Failed to update guest cart:",
+          err
+        );
+      }
+
+      return;
+    }
+
+    // ========================================
+    // LOGGED-IN USER
+    // ========================================
+
     // Optimistic UI
     setCart((prevCart) =>
       prevCart
@@ -63,13 +185,12 @@ export default function Cart() {
           ? "incquantity"
           : "decquantity";
 
-      await fetch(
+      const res = await fetch(
         `${import.meta.env.VITE_API}/api/cart/${endpoint}`,
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           credentials: "include",
           body: JSON.stringify({
@@ -77,6 +198,12 @@ export default function Cart() {
           }),
         }
       );
+
+      if (!res.ok) {
+        throw new Error(
+          "Failed to update cart quantity"
+        );
+      }
     } catch (err) {
       console.error(
         "Failed to sync quantity:",
@@ -87,33 +214,83 @@ export default function Cart() {
     }
   };
 
-  // Remove Product
-  const removeFromCart = async (
-    id
-  ) => {
+  // ==========================================
+  // REMOVE PRODUCT
+  // ==========================================
+  const removeFromCart = async (id) => {
+    // ========================================
+    // GUEST USER
+    // ========================================
+    if (!user) {
+      try {
+        const existingCart =
+          JSON.parse(
+            localStorage.getItem("guestCart")
+          ) || [];
+
+        const updatedCart = existingCart.filter(
+          (item) => item._id !== id
+        );
+
+        localStorage.setItem(
+          "guestCart",
+          JSON.stringify(updatedCart)
+        );
+
+        setCart(updatedCart);
+      } catch (err) {
+        console.error(
+          "Failed to remove guest product:",
+          err
+        );
+      }
+
+      return;
+    }
+
+    // ========================================
+    // LOGGED-IN USER
+    // ========================================
+
     setCart((prev) =>
       prev.filter(
         (item) => item._id !== id
       )
     );
 
-    await fetch(
-      `${import.meta.env.VITE_API}/api/cart/remove`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          productid: id,
-        }),
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API}/api/cart/remove`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            productid: id,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(
+          "Failed to remove product"
+        );
       }
-    );
+    } catch (err) {
+      console.error(
+        "Failed to remove product:",
+        err
+      );
+
+      fetchCart();
+    }
   };
 
-  // Total Price
+  // ==========================================
+  // TOTAL PRICE
+  // ==========================================
   const totalPrice = cart.reduce(
     (acc, item) =>
       acc +
@@ -121,13 +298,20 @@ export default function Cart() {
     0
   );
 
-  if (loading)
+  // ==========================================
+  // LOADING
+  // ==========================================
+  if (authLoading || loading) {
     return (
       <p className="p-6 text-blue-600 font-medium">
         Loading your items...
       </p>
     );
+  }
 
+  // ==========================================
+  // CART UI
+  // ==========================================
   return (
     <div className="min-h-screen bg-slate-100 py-10 px-4">
 
@@ -146,7 +330,7 @@ export default function Cart() {
             </p>
           </div>
 
-          {/* Single Checkout Button */}
+          {/* Checkout Button */}
           {cart.length > 0 && (
             <Link to="/checkout/:id">
               <button className="px-8 py-4 bg-blue-900 hover:bg-blue-800 text-white font-semibold rounded-2xl shadow-lg transition">
